@@ -186,7 +186,7 @@ export class AppliedV1 {
 }
 export { AppliedV1 as Applied };
 
-/** The scan that produced this tick's contacts: the one your previous act asked for. 32 bytes. */
+/** The scan that produced this tick's contacts: where the scanner points now, after slewing toward your previous act's scan. 32 bytes. */
 export class ScanV1 {
   static readonly SIZE: usize = 32;
   constructor(public readonly ptr: usize) {}
@@ -574,7 +574,7 @@ export declare function gun_get_fire(out: usize): i32;
 /** What this tick's act holds for a gun field so far, as set. */
 @external("clunkyard", "gun_get_power")
 export declare function gun_get_power(out: usize): i32;
-/** The scan that produced this tick's contacts. */
+/** The scan that produced this tick's contacts: where the scanner points now. */
 @external("clunkyard", "scanner_last_v1")
 export declare function scanner_last_v1(out: usize): i32;
 /** Robots this close are detected in any direction. */
@@ -586,15 +586,21 @@ export declare function scanner_reach(arc: f64, out: usize): i32;
 /** The widest arc that still reaches this far, by hello.formulas.arcForReach. */
 @external("clunkyard", "scanner_arc_for_reach")
 export declare function scanner_arc_for_reach(range: f64, out: usize): i32;
-/** Ask where the scanner points for the next state. */
+/** Ask the scanner to turn toward a direction for the next state; it slews at scanner.turnRate, and the arc changes at once. */
 @external("clunkyard", "scanner_heading")
 export declare function scanner_heading(value: f64): i32;
-/** Ask where the scanner points for the next state. */
+/** Ask the scanner to turn toward a direction for the next state; it slews at scanner.turnRate, and the arc changes at once. */
 @external("clunkyard", "scanner_arc")
 export declare function scanner_arc(value: f64): i32;
-/** Ask where the scanner points for the next state. */
+/** Ask the scanner to turn toward a direction for the next state; it slews at scanner.turnRate, and the arc changes at once. */
 @external("clunkyard", "scanner_pitch")
 export declare function scanner_pitch(value: f64): i32;
+/** The scanner was on for the tick this state's contacts come from. */
+@external("clunkyard", "scanner_is_on")
+export declare function scanner_is_on(out: usize): i32;
+/** Switch the scanner on (1) or off (0) for this tick; it is on unless an act switches it off. Off, it still slews and re-arcs but sees no scan or faint contacts and shows no beam. */
+@external("clunkyard", "scanner_on")
+export declare function scanner_on(value: f64): i32;
 /** What this tick's act holds for a scanner field so far, as set. */
 @external("clunkyard", "scanner_get_heading")
 export declare function scanner_get_heading(out: usize): i32;
@@ -604,6 +610,9 @@ export declare function scanner_get_arc(out: usize): i32;
 /** What this tick's act holds for a scanner field so far, as set. */
 @external("clunkyard", "scanner_get_pitch")
 export declare function scanner_get_pitch(out: usize): i32;
+/** What this tick's act holds for a scanner field so far, as set. */
+@external("clunkyard", "scanner_get_on")
+export declare function scanner_get_on(out: usize): i32;
 /** Every contact this tick: scan and proximity first, nearest first, then passive ones. */
 @external("clunkyard", "sensors_contacts_v1")
 export declare function sensors_contacts_v1(out: usize, capacity: u32, count: usize): i32;
