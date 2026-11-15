@@ -28,6 +28,7 @@
 // arena: arena_size arena_gravity arena_terrain_kind arena_ground_height
 // me: me_health me_position me_velocity me_heading me_pitch me_roll
 //   me_angular_velocity me_attitude me_grounded me_altitude me_applied
+//   me_hull_mounts me_to_mount me_from_mount me_mount_toward
 // battery: battery_charge battery_capacity battery_regen
 //   battery_sustainable_drive battery_compute battery_drive_cost
 // drive: drive_hover_lift drive_throttle drive_turn drive_pitch_turn
@@ -56,7 +57,8 @@
 //   nav_pickups nav_nearest_pickup nav_field_distance
 // score: score_me score_best score_armour
 // angles: angles_normalize angles_angle_diff angles_bearing_to
-//   angles_elevation_to angles_direction angles_distance angles_clamp
+//   angles_elevation_to angles_direction angles_distance angles_to_chassis
+//   angles_from_chassis angles_clamp
 // status: status_text status_value status_get_text status_get_value
 // raw: raw_number raw_text raw_has raw_flag raw_count raw_line raw_extra
 // session: session_log
@@ -70,6 +72,8 @@ export { clunkyard_start, clunkyard_turn } from "./clunkyard";
 const SEARCH_TURN = 0.33;
 // How long to look again where a robot was last seen.
 const MEMORY_TICKS = 60;
+// How long a dodge lasts: half a second.
+const DODGE_TICKS = 10;
 
 // The records the imports write into, and room for one number or count.
 const me = cy.Vec3.create();
@@ -83,11 +87,16 @@ const cue = cy.Cue.create();
 const scan = cy.Scan.create();
 const storm = cy.Storm.create();
 const zone = cy.Zone.create();
+const CUES = 8;
+const cues = heap.alloc(CUES * cy.Contact.SIZE); // this turn's passive contacts
 const number = heap.alloc(8);
 const whole = heap.alloc(4);
 
 let freeFlight = false; // flying free, robots may be above or below
+let forces = false; // the force rulesets: push the hull, not steer it
 let lastSlot = 0; // the robot seen most recently, 0 for none yet
+let dodgeUntil = 0; // the tick the dodge ends
+let dodges = 0; // how many dodges so far
 
 // Each import writes its answer through a pointer and returns a status.
 function f64Of(status: i32): f64 { return status == cy.OK ? load<f64>(number) : 0; }
@@ -107,6 +116,7 @@ function steer(throttle: f64, heading: f64, elevation: f64, gain: f64, myHeading
 function start(): void {
   cy.arena_gravity(gravity.ptr);
   freeFlight = i32Of(cy.match_is_3d(whole)) == 1 && gravity.z == 0;
+  forces = i32Of(cy.match_control(whole)) == cy.CONTROL_FORCES;
 }
 
 function turn(): void {
@@ -125,7 +135,8 @@ function turn(): void {
     cy.scanner_pitch(elevation);
     // The heaviest shot that still covers the range in about a second,
     // aimed where the target will be, lobbed under gravity; straight at it
-    // when no shot reaches it.
+    // when no shot reaches it. The lead is the intercept if the target holds
+    // its course.
     store<f64>(number, 1);
     const power = f64Of(cy.gun_power_for_flight_time(range, 1, number));
     if (cy.gun_lead(target.ptr, power, aim.ptr) != cy.OK) {
@@ -168,6 +179,32 @@ function turn(): void {
     cy.scanner_heading(scan.heading + 36);
     cy.scanner_arc(40);
     cy.scanner_pitch(freeFlight ? <f64>((tick / 10) % 3 - 1) * 35 : 0);
+  }
+
+  // A simple dodge: vary it, or predict the shooter. A muzzle cue means a
+  // robot fired; for half a second swerve off the line of fire, left and
+  // right in turn. More cues than the array holds (cy.SHORT) count as none
+  // heard.
+  if (tick >= dodgeUntil && cy.sensors_cues(cues, CUES, whole) == cy.OK) {
+    const count = load<u32>(whole);
+    for (let i: u32 = 0; i < count; i++) {
+      // A contact's source is the whole number 4 bytes in.
+      if (load<i32>(cues + i * cy.Contact.SIZE, 4) == cy.SOURCE_MUZZLE) {
+        dodgeUntil = tick + DODGE_TICKS;
+        dodges++;
+        break;
+      }
+    }
+  }
+  if (tick < dodgeUntil) {
+    const side: f64 = dodges % 2 == 1 ? 1 : -1; // turn is positive left, strafe positive right
+    if (forces) {
+      cy.drive_throttle(0.5);
+      cy.drive_strafe(-side);
+    } else {
+      cy.drive_throttle(1);
+      cy.drive_turn(side);
+    }
   }
 
   // Low battery: drive gently so the shots can still be paid for.

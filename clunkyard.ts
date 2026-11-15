@@ -445,6 +445,18 @@ export declare function me_altitude(out: usize): i32;
 /** What the previous tick applied to you. */
 @external("clunkyard", "me_applied_v1")
 export declare function me_applied_v1(out: usize): i32;
+/** Your turret and scanner are mounted on the hull: gun.aim, scanner.set, gun.aim_now and scanner.last are in your chassis frame, not world axes. */
+@external("clunkyard", "me_hull_mounts")
+export declare function me_hull_mounts(out: usize): i32;
+/** A world direction in the frame your mounts take: in your chassis frame (angles.to_chassis with me.attitude) when me.hull_mounts, unchanged otherwise. */
+@external("clunkyard", "me_to_mount")
+export declare function me_to_mount(heading: f64, pitch: f64, out: usize): i32;
+/** A direction in your mounts' frame, such as gun.aim_now, in world axes: angles.from_chassis with me.attitude when me.hull_mounts, unchanged otherwise. */
+@external("clunkyard", "me_from_mount")
+export declare function me_from_mount(heading: f64, pitch: f64, out: usize): i32;
+/** The direction from you to a point, in the frame your mounts take: me.to_mount of its bearing and elevation from you. */
+@external("clunkyard", "me_mount_toward")
+export declare function me_mount_toward(point: usize, out: usize): i32;
 /** Charge now, before this tick's regeneration and driving. */
 @external("clunkyard", "battery_charge")
 export declare function battery_charge(out: usize): i32;
@@ -526,7 +538,7 @@ export declare function drive_get_roll_torque(out: usize): i32;
 /** What this tick's act holds for a drive field so far, as set. */
 @external("clunkyard", "drive_get_brake")
 export declare function drive_get_brake(out: usize): i32;
-/** Where the turret points now; a shot leaves along it. */
+/** Where the turret points now, in your mounts' frame (me.from_mount gives world axes); a shot leaves along it. */
 @external("clunkyard", "gun_aim_now")
 export declare function gun_aim_now(out: usize): i32;
 /** Ticks until the gun can fire; 0 means it can fire this tick. */
@@ -592,7 +604,7 @@ export declare function gun_get_fire(out: usize): i32;
 /** What this tick's act holds for a gun field so far, as set. */
 @external("clunkyard", "gun_get_power")
 export declare function gun_get_power(out: usize): i32;
-/** The scan that produced this tick's contacts: where the scanner points now. */
+/** The scan that produced this tick's contacts: where the scanner points now, in your mounts' frame. */
 @external("clunkyard", "scanner_last_v1")
 export declare function scanner_last_v1(out: usize): i32;
 /** Robots this close are detected in any direction. */
@@ -739,6 +751,12 @@ export declare function angles_direction(heading: f64, pitch: f64, out: usize): 
 /** The straight-line distance between two points. */
 @external("clunkyard", "angles_distance")
 export declare function angles_distance(a: usize, b: usize, out: usize): i32;
+/** A world direction as a heading and pitch in a chassis frame: with d = direction(heading, pitch), the heading of (d·forward, d·right) and the pitch atan2(d·up, √((d·forward)² + (d·right)²)). */
+@external("clunkyard", "angles_to_chassis_v1")
+export declare function angles_to_chassis_v1(heading: f64, pitch: f64, attitude: usize, out: usize): i32;
+/** A chassis-frame heading h and pitch p in world axes: the direction of cos p cos h × forward + cos p sin h × right + sin p × up. */
+@external("clunkyard", "angles_from_chassis_v1")
+export declare function angles_from_chassis_v1(heading: f64, pitch: f64, attitude: usize, out: usize): i32;
 /** A value held within low and high. */
 @external("clunkyard", "angles_clamp")
 export declare function angles_clamp(value: f64, low: f64, high: f64, out: usize): i32;
@@ -800,6 +818,8 @@ export { nav_storm_v1 as nav_storm };
 export { nav_hill_v1 as nav_hill };
 export { nav_pickups_v1 as nav_pickups };
 export { nav_nearest_pickup_v1 as nav_nearest_pickup };
+export { angles_to_chassis_v1 as angles_to_chassis };
+export { angles_from_chassis_v1 as angles_from_chassis };
 
 let startFn: (() => void) | null = null;
 let turnFn: (() => void) | null = null;
