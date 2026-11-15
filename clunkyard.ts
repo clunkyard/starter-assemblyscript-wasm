@@ -574,7 +574,7 @@ export declare function gun_power_for_speed(speed: f64, out: usize): i32;
 /** The power whose shot covers this range in this time, within the legal powers. */
 @external("clunkyard", "gun_power_for_flight_time")
 export declare function gun_power_for_flight_time(range: f64, seconds: f64, out: usize): i32;
-/** The intercept if the contact holds its tracked velocity: the aim at which a shot fired now meets it then; absent when no shot reaches it. It is a starting point, and a target that turns, reverses or weaves beats it; for your own prediction, use lead_point. */
+/** The intercept if the contact holds its tracked velocity (tracker.velocity, smoothed as tracker.configure sets; zero for a passive contact or an untracked robot): the aim at which a shot fired now meets it then; absent when no shot reaches it. It is a starting point, and a target that turns, reverses or weaves beats it; for your own prediction, use lead_point. */
 @external("clunkyard", "gun_lead_v1")
 export declare function gun_lead_v1(contact: usize, power: f64, out: usize): i32;
 /** The intercept geometry for your own prediction: the aim at which a shot fired now meets a point that starts at this position and moves at this velocity; absent when no shot reaches it. */
@@ -664,7 +664,7 @@ export declare function tracker_cue_v1(out: usize): i32;
 /** How fast the nearest contact's bearing turns, from two sightings. */
 @external("clunkyard", "tracker_nearest_bearing_rate")
 export declare function tracker_nearest_bearing_rate(out: usize): i32;
-/** The robot's tracked velocity; zero when it has no track. */
+/** The robot's tracked velocity, the one gun.lead uses: the difference of its first two sightings, then smoothing × the old velocity + (1 − smoothing) × each newer difference; zero when it has no track. */
 @external("clunkyard", "tracker_velocity")
 export declare function tracker_velocity(slot: i32, out: usize): i32;
 /** Where the robot was last seen, if it was. */
