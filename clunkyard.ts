@@ -243,6 +243,24 @@ export class CueV1 {
 }
 export { CueV1 as Cue };
 
+/** One sighting of a robot, as the sensors measured it: no smoothing and no derived velocity. 48 bytes. */
+export class SightingV1 {
+  static readonly SIZE: usize = 48;
+  constructor(public readonly ptr: usize) {}
+  /** A zeroed SightingV1, from the heap. */
+  static create(): SightingV1 { const ptr = heap.alloc(48); memory.fill(ptr, 0, 48); return new SightingV1(ptr); }
+  get tick(): i32 { return load<i32>(this.ptr, 0); }
+  set tick(value: i32) { store<i32>(this.ptr, value, 0); }
+  get source(): i32 { return load<i32>(this.ptr, 4); }
+  set source(value: i32) { store<i32>(this.ptr, value, 4); }
+  get bearing_error(): f64 { return load<f64>(this.ptr, 8); }
+  set bearing_error(value: f64) { store<f64>(this.ptr, value, 8); }
+  get range_error(): f64 { return load<f64>(this.ptr, 16); }
+  set range_error(value: f64) { store<f64>(this.ptr, value, 16); }
+  get position(): Vec3 { return new Vec3(this.ptr + 24); }
+}
+export { SightingV1 as Sighting };
+
 /** Where to aim for a shot fired now to meet a target, and when it meets it. 24 bytes. */
 export class SolutionV1 {
   static readonly SIZE: usize = 24;
@@ -544,10 +562,10 @@ export declare function gun_power_for_speed(speed: f64, out: usize): i32;
 /** The power whose shot covers this range in this time, within the legal powers. */
 @external("clunkyard", "gun_power_for_flight_time")
 export declare function gun_power_for_flight_time(range: f64, seconds: f64, out: usize): i32;
-/** The aim at which a shot fired now meets the contact if it holds its tracked velocity; absent when no shot reaches it. */
+/** The intercept if the contact holds its tracked velocity: the aim at which a shot fired now meets it then; absent when no shot reaches it. It is a starting point, and a target that turns, reverses or weaves beats it; for your own prediction, use lead_point. */
 @external("clunkyard", "gun_lead_v1")
 export declare function gun_lead_v1(contact: usize, power: f64, out: usize): i32;
-/** The aim at which a shot fired now meets a point moving at this velocity; absent when no shot reaches it. */
+/** The intercept geometry for your own prediction: the aim at which a shot fired now meets a point that starts at this position and moves at this velocity; absent when no shot reaches it. */
 @external("clunkyard", "gun_lead_point_v1")
 export declare function gun_lead_point_v1(position: usize, velocity: usize, power: f64, out: usize): i32;
 /** Ask the turret to turn toward a direction; it slews at gun.turnRate. */
@@ -640,6 +658,9 @@ export declare function tracker_velocity(slot: i32, out: usize): i32;
 /** Where the robot was last seen, if it was. */
 @external("clunkyard", "tracker_position")
 export declare function tracker_position(slot: i32, out: usize): i32;
+/** The robot's last 32 precise sightings, oldest first, as measured: positions as the sensors placed them, with the errors they reported; empty when it has none. A gap in the ticks is a gap in the sightings, and a track restart does not clear them. */
+@external("clunkyard", "tracker_history_v1")
+export declare function tracker_history_v1(slot: i32, out: usize, capacity: u32, count: usize): i32;
 /** The tick the robot was last seen, if it was. */
 @external("clunkyard", "tracker_last_seen")
 export declare function tracker_last_seen(slot: i32, out: usize): i32;
@@ -773,6 +794,7 @@ export { sensors_cues_v1 as sensors_cues };
 export { sensors_contact_v1 as sensors_contact };
 export { sensors_position_of_v1 as sensors_position_of };
 export { tracker_cue_v1 as tracker_cue };
+export { tracker_history_v1 as tracker_history };
 export { nav_zone_v1 as nav_zone };
 export { nav_storm_v1 as nav_storm };
 export { nav_hill_v1 as nav_hill };
