@@ -772,6 +772,9 @@ export declare function status_get_text(buf: usize, capacity: u32, length: usize
 /** What this tick's act holds for the status line so far, as set. */
 @external("clunkyard", "status_get_value")
 export declare function status_get_value(out: usize): i32;
+/** Adds a line to this tick's act for your trace; the first four of a turn are kept and later ones dropped. Unlike session.log, the arena keeps it. */
+@external("clunkyard", "debug_log")
+export declare function debug_log(line: usize, line_length: u32): i32;
 /** The number at a path, if there is one. */
 @external("clunkyard", "raw_number")
 export declare function raw_number(path: usize, path_length: u32, out: usize): i32;
@@ -790,7 +793,7 @@ export declare function raw_count(path: usize, path_length: u32, out: usize): i3
 /** The last line the session read: the hello, or the latest state. */
 @external("clunkyard", "raw_line")
 export declare function raw_line(buf: usize, capacity: u32, length: usize): i32;
-/** Adds fields the API does not cover to this tick's act; a key the API writes (v, type, tick, drive, forces, aim, scan, fire, status) is refused with E_ARGUMENT. */
+/** Adds fields the API does not cover to this tick's act; a key the API writes (v, type, tick, drive, forces, aim, scan, fire, status, log) is refused with E_ARGUMENT. */
 @external("clunkyard", "raw_extra")
 export declare function raw_extra(json: usize, json_length: u32): i32;
 /** Writes a line to standard error, never to the protocol. */
