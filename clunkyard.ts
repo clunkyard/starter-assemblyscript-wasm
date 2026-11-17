@@ -261,6 +261,24 @@ export class SightingV1 {
 }
 export { SightingV1 as Sighting };
 
+/** How far your edge is from the walls, from your position, your radius and the arena size. 56 bytes. */
+export class WallMarginV1 {
+  static readonly SIZE: usize = 56;
+  constructor(public readonly ptr: usize) {}
+  /** A zeroed WallMarginV1, from the heap. */
+  static create(): WallMarginV1 { const ptr = heap.alloc(56); memory.fill(ptr, 0, 56); return new WallMarginV1(ptr); }
+  get x(): f64 { return load<f64>(this.ptr, 0); }
+  set x(value: f64) { store<f64>(this.ptr, value, 0); }
+  get y(): f64 { return load<f64>(this.ptr, 8); }
+  set y(value: f64) { store<f64>(this.ptr, value, 8); }
+  get z(): f64 { return load<f64>(this.ptr, 16); }
+  set z(value: f64) { store<f64>(this.ptr, value, 16); }
+  get nearest(): f64 { return load<f64>(this.ptr, 24); }
+  set nearest(value: f64) { store<f64>(this.ptr, value, 24); }
+  get normal(): Vec3 { return new Vec3(this.ptr + 32); }
+}
+export { WallMarginV1 as WallMargin };
+
 /** Where to aim for a shot fired now to meet a target, and when it meets it. 24 bytes. */
 export class SolutionV1 {
   static readonly SIZE: usize = 24;
@@ -442,6 +460,9 @@ export declare function me_grounded(out: usize): i32;
 /** In 3D, the height of your underside above the ground. */
 @external("clunkyard", "me_altitude")
 export declare function me_altitude(out: usize): i32;
+/** The walls that stopped or bounced your move in the tick just simulated, reported by the arena (self.wall); zero when none did. Under gravity the ground is not a wall (me.grounded), so z is at most the ceiling's -1 there. */
+@external("clunkyard", "me_wall_contact")
+export declare function me_wall_contact(out: usize): i32;
 /** What the previous tick applied to you. */
 @external("clunkyard", "me_applied_v1")
 export declare function me_applied_v1(out: usize): i32;
@@ -715,6 +736,9 @@ export declare function nav_hill_contains(point: usize, margin: f64, out: usize)
 /** How far a point is from the hill's edge, 0 inside; absent while there is none. */
 @external("clunkyard", "nav_hill_distance_from")
 export declare function nav_hill_distance_from(point: usize, out: usize): i32;
+/** How far the edge of your robot is from the walls: from your position, your radius (hello.robot.radius) and the arena size, nothing the arena reports. */
+@external("clunkyard", "nav_wall_margin_v1")
+export declare function nav_wall_margin_v1(out: usize): i32;
 /** Every pickup on the field. */
 @external("clunkyard", "nav_pickups_v1")
 export declare function nav_pickups_v1(out: usize, capacity: u32, count: usize): i32;
@@ -819,6 +843,7 @@ export { tracker_history_v1 as tracker_history };
 export { nav_zone_v1 as nav_zone };
 export { nav_storm_v1 as nav_storm };
 export { nav_hill_v1 as nav_hill };
+export { nav_wall_margin_v1 as nav_wall_margin };
 export { nav_pickups_v1 as nav_pickups };
 export { nav_nearest_pickup_v1 as nav_nearest_pickup };
 export { angles_to_chassis_v1 as angles_to_chassis };
