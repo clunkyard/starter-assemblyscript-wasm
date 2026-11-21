@@ -21,9 +21,9 @@
  *   cy.robot(null, turn);
  */
 
-export const API_VERSION = "2.0.0";
+export const API_VERSION = "2.1.0";
 export const API_MAJOR: i32 = 2;
-export const API_MINOR: i32 = 0;
+export const API_MINOR: i32 = 1;
 /** Done. */
 export const OK: i32 = 0;
 /** Absent, which is not an error: no precise contact, a mechanic that is off, a shot that cannot reach, or a field that is unset. */
@@ -58,6 +58,10 @@ export const SOURCE_MUZZLE: i32 = 5;
 export const SOURCE_MOTION: i32 = 6;
 /** source: ping */
 export const SOURCE_PING: i32 = 7;
+/** source: launch */
+export const SOURCE_LAUNCH: i32 = 8;
+/** source: drone */
+export const SOURCE_DRONE: i32 = 9;
 /** mode: none */
 export const MODE_NONE: i32 = 0;
 /** mode: 2d */
@@ -120,6 +124,20 @@ export const EVENT_HELLO: i32 = 1;
 export const EVENT_STATE: i32 = 2;
 /** event: end */
 export const EVENT_END: i32 = 3;
+/** report_state: none */
+export const REPORT_STATE_NONE: i32 = 0;
+/** report_state: flying */
+export const REPORT_STATE_FLYING: i32 = 1;
+/** report_state: lost */
+export const REPORT_STATE_LOST: i32 = 2;
+/** report_state: ended */
+export const REPORT_STATE_ENDED: i32 = 3;
+/** sighting_kind: none */
+export const SIGHTING_KIND_NONE: i32 = 0;
+/** sighting_kind: robot */
+export const SIGHTING_KIND_ROBOT: i32 = 1;
+/** sighting_kind: drone */
+export const SIGHTING_KIND_DRONE: i32 = 2;
 
 /** A vector in world axes. 24 bytes. */
 export class Vec3 {
@@ -185,6 +203,23 @@ export class AppliedV1 {
   set brake(value: f64) { store<f64>(this.ptr, value, 48); }
 }
 export { AppliedV1 as Applied };
+
+/** The health you lost in the tick just simulated, by what took it, after armour; all 0 when you lost none. Never who or where it came from. 32 bytes. */
+export class HurtV1 {
+  static readonly SIZE: usize = 32;
+  constructor(public readonly ptr: usize) {}
+  /** A zeroed HurtV1, from the heap. */
+  static create(): HurtV1 { const ptr = heap.alloc(32); memory.fill(ptr, 0, 32); return new HurtV1(ptr); }
+  get shot(): f64 { return load<f64>(this.ptr, 0); }
+  set shot(value: f64) { store<f64>(this.ptr, value, 0); }
+  get burst(): f64 { return load<f64>(this.ptr, 8); }
+  set burst(value: f64) { store<f64>(this.ptr, value, 8); }
+  get collision(): f64 { return load<f64>(this.ptr, 16); }
+  set collision(value: f64) { store<f64>(this.ptr, value, 16); }
+  get boundary(): f64 { return load<f64>(this.ptr, 24); }
+  set boundary(value: f64) { store<f64>(this.ptr, value, 24); }
+}
+export { HurtV1 as Hurt };
 
 /** The scan that produced this tick's contacts: where the scanner points now, after slewing toward your previous act's scan. 32 bytes. */
 export class ScanV1 {
@@ -370,6 +405,56 @@ export class PickupV1 {
 }
 export { PickupV1 as Pickup };
 
+/** Your drone's newest report, made at tick and delivered a report period later. 72 bytes. */
+export class ReportV1 {
+  static readonly SIZE: usize = 72;
+  constructor(public readonly ptr: usize) {}
+  /** A zeroed ReportV1, from the heap. */
+  static create(): ReportV1 { const ptr = heap.alloc(72); memory.fill(ptr, 0, 72); return new ReportV1(ptr); }
+  get state(): i32 { return load<i32>(this.ptr, 0); }
+  set state(value: i32) { store<i32>(this.ptr, value, 0); }
+  get tick(): i32 { return load<i32>(this.ptr, 4); }
+  set tick(value: i32) { store<i32>(this.ptr, value, 4); }
+  get flares(): i32 { return load<i32>(this.ptr, 8); }
+  set flares(value: i32) { store<i32>(this.ptr, value, 8); }
+  get reserved(): i32 { return load<i32>(this.ptr, 12); }
+  set reserved(value: i32) { store<i32>(this.ptr, value, 12); }
+  get age(): f64 { return load<f64>(this.ptr, 16); }
+  set age(value: f64) { store<f64>(this.ptr, value, 16); }
+  get say(): f64 { return load<f64>(this.ptr, 24); }
+  set say(value: f64) { store<f64>(this.ptr, value, 24); }
+  get heading(): f64 { return load<f64>(this.ptr, 32); }
+  set heading(value: f64) { store<f64>(this.ptr, value, 32); }
+  get pitch(): f64 { return load<f64>(this.ptr, 40); }
+  set pitch(value: f64) { store<f64>(this.ptr, value, 40); }
+  get position(): Vec3 { return new Vec3(this.ptr + 48); }
+}
+export { ReportV1 as Report };
+
+/** One thing your drone saw, as its noisy scanner measured it. 72 bytes. */
+export class DroneSightingV1 {
+  static readonly SIZE: usize = 72;
+  constructor(public readonly ptr: usize) {}
+  /** A zeroed DroneSightingV1, from the heap. */
+  static create(): DroneSightingV1 { const ptr = heap.alloc(72); memory.fill(ptr, 0, 72); return new DroneSightingV1(ptr); }
+  get kind(): i32 { return load<i32>(this.ptr, 0); }
+  set kind(value: i32) { store<i32>(this.ptr, value, 0); }
+  get tick(): i32 { return load<i32>(this.ptr, 4); }
+  set tick(value: i32) { store<i32>(this.ptr, value, 4); }
+  get range(): f64 { return load<f64>(this.ptr, 8); }
+  set range(value: f64) { store<f64>(this.ptr, value, 8); }
+  get bearing(): f64 { return load<f64>(this.ptr, 16); }
+  set bearing(value: f64) { store<f64>(this.ptr, value, 16); }
+  get elevation(): f64 { return load<f64>(this.ptr, 24); }
+  set elevation(value: f64) { store<f64>(this.ptr, value, 24); }
+  get bearing_error(): f64 { return load<f64>(this.ptr, 32); }
+  set bearing_error(value: f64) { store<f64>(this.ptr, value, 32); }
+  get range_error(): f64 { return load<f64>(this.ptr, 40); }
+  set range_error(value: f64) { store<f64>(this.ptr, value, 40); }
+  get position(): Vec3 { return new Vec3(this.ptr + 48); }
+}
+export { DroneSightingV1 as DroneSighting };
+
 /** How the match charges compute against the battery. 16 bytes. */
 export class ComputeV1 {
   static readonly SIZE: usize = 16;
@@ -463,6 +548,9 @@ export declare function me_altitude(out: usize): i32;
 /** The walls that stopped or bounced your move in the tick just simulated, reported by the arena (self.wall); zero when none did. Under gravity the ground is not a wall (me.grounded), so z is at most the ceiling's -1 there. */
 @external("clunkyard", "me_wall_contact")
 export declare function me_wall_contact(out: usize): i32;
+/** The health you lost in the tick just simulated, by cause: shots that hit you, shots that burst near you, collisions with robots and the boundary (the zone, the stall ring or the storm), as the arena reports it (self.hurt); all 0 when you lost none. It never names the robot behind a loss or where it came from. */
+@external("clunkyard", "me_hurt_v1")
+export declare function me_hurt_v1(out: usize): i32;
 /** What the previous tick applied to you. */
 @external("clunkyard", "me_applied_v1")
 export declare function me_applied_v1(out: usize): i32;
@@ -757,6 +845,51 @@ export declare function score_best(out: usize): i32;
 /** Your armour; absent when the match has no objectives. */
 @external("clunkyard", "score_armour")
 export declare function score_armour(out: usize): i32;
+/** You have a drone program to launch (state.drone.has). */
+@external("clunkyard", "drone_has")
+export declare function drone_has(out: usize): i32;
+/** A launch this tick would be accepted (state.drone.ready). */
+@external("clunkyard", "drone_ready")
+export declare function drone_ready(out: usize): i32;
+/** Your drone is in the air (state.drone.inFlight). */
+@external("clunkyard", "drone_in_flight")
+export declare function drone_in_flight(out: usize): i32;
+/** The launches you have left (state.drone.launchesLeft). */
+@external("clunkyard", "drone_launches_left")
+export declare function drone_launches_left(out: usize): i32;
+/** Your drone's newest report, kept after the drone ends; absent before the first. */
+@external("clunkyard", "drone_report_v1")
+export declare function drone_report_v1(out: usize): i32;
+/** What the newest report saw, nearest first, each projected to a world point from the report's position; empty with no report. */
+@external("clunkyard", "drone_sightings_v1")
+export declare function drone_sightings_v1(out: usize, capacity: u32, count: usize): i32;
+/** Ask to launch your drone this tick; the arena decides whether drone.ready allows it. */
+@external("clunkyard", "drone_launch")
+export declare function drone_launch(): i32;
+/** Ask to launch your drone this tick; the arena decides whether drone.ready allows it. */
+@external("clunkyard", "drone_launch_heading")
+export declare function drone_launch_heading(value: f64): i32;
+/** Ask to launch your drone this tick; the arena decides whether drone.ready allows it. */
+@external("clunkyard", "drone_launch_pitch")
+export declare function drone_launch_pitch(value: f64): i32;
+/** Ask to launch your drone this tick; the arena decides whether drone.ready allows it. */
+@external("clunkyard", "drone_launch_param")
+export declare function drone_launch_param(value: f64): i32;
+/** Sets one number of this tick's launch brief, which the drone program reads as brief-1 to brief-8; unset numbers before the highest set one go as 0, but brief-1 goes as the launch param when that is set. It goes only with drone.launch, and a later call replaces the number. */
+@external("clunkyard", "drone_brief")
+export declare function drone_brief(index: i32, value: f64): i32;
+/** What this tick's act holds for a drone field so far, as set. */
+@external("clunkyard", "drone_get_launch")
+export declare function drone_get_launch(out: usize): i32;
+/** What this tick's act holds for a drone field so far, as set. */
+@external("clunkyard", "drone_get_launch_heading")
+export declare function drone_get_launch_heading(out: usize): i32;
+/** What this tick's act holds for a drone field so far, as set. */
+@external("clunkyard", "drone_get_launch_pitch")
+export declare function drone_get_launch_pitch(out: usize): i32;
+/** What this tick's act holds for a drone field so far, as set. */
+@external("clunkyard", "drone_get_launch_param")
+export declare function drone_get_launch_param(out: usize): i32;
 /** An angle brought into 0 to 360, exactly: degrees % 360, plus 360 when that is negative. */
 @external("clunkyard", "angles_normalize")
 export declare function angles_normalize(degrees: f64, out: usize): i32;
@@ -817,7 +950,7 @@ export declare function raw_count(path: usize, path_length: u32, out: usize): i3
 /** The last line the session read: the hello, or the latest state. */
 @external("clunkyard", "raw_line")
 export declare function raw_line(buf: usize, capacity: u32, length: usize): i32;
-/** Adds fields the API does not cover to this tick's act; a key the API writes (v, type, tick, drive, forces, aim, scan, fire, status, log) is refused with E_ARGUMENT. */
+/** Adds fields the API does not cover to this tick's act; a key the API writes (v, type, tick, drive, forces, aim, scan, fire, drone, status, log) is refused with E_ARGUMENT. */
 @external("clunkyard", "raw_extra")
 export declare function raw_extra(json: usize, json_length: u32): i32;
 /** Writes a line to standard error, never to the protocol. */
@@ -828,6 +961,7 @@ export declare function session_log(line: usize, line_length: u32): i32;
 export declare function robot_seed(out: usize): i32;
 
 export { me_attitude_v1 as me_attitude };
+export { me_hurt_v1 as me_hurt };
 export { me_applied_v1 as me_applied };
 export { battery_compute_v1 as battery_compute };
 export { gun_lead_v1 as gun_lead };
@@ -846,6 +980,8 @@ export { nav_hill_v1 as nav_hill };
 export { nav_wall_margin_v1 as nav_wall_margin };
 export { nav_pickups_v1 as nav_pickups };
 export { nav_nearest_pickup_v1 as nav_nearest_pickup };
+export { drone_report_v1 as drone_report };
+export { drone_sightings_v1 as drone_sightings };
 export { angles_to_chassis_v1 as angles_to_chassis };
 export { angles_from_chassis_v1 as angles_from_chassis };
 
